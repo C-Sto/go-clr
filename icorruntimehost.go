@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package clr
@@ -93,5 +94,43 @@ func (obj *ICORRuntimeHost) GetDefaultDomain(pAppDomain *uintptr) uintptr {
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(pAppDomain)),
 		0)
+	return ret
+}
+
+func (obj *ICORRuntimeHost) CreateDomain(friendlyname string, pAppDomain *uintptr) uintptr {
+	wcfriendlyname := &utf16Le(friendlyname)[0]
+	ret, _, _ := syscall.SyscallN(
+		obj.vtbl.CreateDomain,
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(wcfriendlyname)),
+		0,
+		uintptr(unsafe.Pointer(pAppDomain)))
+	return ret
+}
+
+func (obj *ICORRuntimeHost) EnumDomains(hDomainEnum *uintptr) uintptr {
+	ret, _, _ := syscall.SyscallN(
+		obj.vtbl.EnumDomains,
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(hDomainEnum)))
+	return ret
+}
+
+func (obj *ICORRuntimeHost) NextDomain(hDomainEnum uintptr, iunknownptr *uintptr) uintptr {
+	ret, _, _ := syscall.SyscallN(
+		obj.vtbl.NextDomain,
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(hDomainEnum)),
+		uintptr(unsafe.Pointer(iunknownptr)),
+	)
+	return ret
+}
+
+func (obj *ICORRuntimeHost) CloseEnum(hDomainEnum uintptr) uintptr {
+	ret, _, _ := syscall.SyscallN(
+		obj.vtbl.CloseEnum,
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(hDomainEnum)),
+	)
 	return ret
 }

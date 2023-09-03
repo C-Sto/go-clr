@@ -1,11 +1,13 @@
+//go:build windows
 // +build windows
 
 package clr
 
 import (
-	"golang.org/x/sys/windows"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 // from mscorlib.tlh
@@ -110,4 +112,24 @@ func (obj *Assembly) GetEntryPoint(pMethodInfo *uintptr) uintptr {
 		uintptr(unsafe.Pointer(pMethodInfo)),
 		0)
 	return ret
+}
+
+func (obj *Assembly) getFullName(pRetValBSTR *uintptr) uintptr {
+	ret, _, _ := syscall.Syscall(
+		obj.vtbl.get_FullName,
+		2,
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(pRetValBSTR)),
+		0)
+	return ret
+}
+
+func (obj *Assembly) GetFullName() (string, error) {
+	var pAssemblyName uintptr
+	hr := obj.getFullName(&pAssemblyName)
+	err := checkOK(hr, "assembly.getfullname")
+	if err != nil {
+		return "", err
+	}
+	return StrFromBstrPtr(pAssemblyName), nil
 }

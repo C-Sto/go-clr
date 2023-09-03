@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package clr
@@ -12,6 +13,9 @@ import (
 var (
 	modMSCoree            = syscall.NewLazyDLL("mscoree.dll")
 	procCLRCreateInstance = modMSCoree.NewProc("CLRCreateInstance")
+
+	modOLE     = syscall.NewLazyDLL("ole32.dll")
+	procCoInit = modOLE.NewProc("CoInitializeEx")
 )
 
 // Wrapper for the mscorree.dll CLRCreateInstance syscall
@@ -23,11 +27,18 @@ func CLRCreateInstance(clsid, riid *windows.GUID, ppInterface *uintptr) uintptr 
 	return ret
 }
 
+func coInitializeEx() uintptr {
+	ret, _, _ := procCoInit.Call(
+		0,
+		0, //COINIT_MULTITHREADED
+	)
+	return ret
+}
 
 // Couldnt have done any of this without this SO answer I stumbled on:
 // https://stackoverflow.com/questions/37781676/how-to-use-com-component-object-model-in-golang
 
-//ICLRMetaHost Interface from metahost.h
+// ICLRMetaHost Interface from metahost.h
 type ICLRMetaHost struct {
 	vtbl *ICLRMetaHostVtbl
 }
@@ -47,6 +58,7 @@ type ICLRMetaHostVtbl struct {
 
 // GetICLRMetaHost is a wrapper function to create and return an ICLRMetahost object
 func GetICLRMetaHost() (metahost *ICLRMetaHost, err error) {
+	coInitializeEx()
 	var pMetaHost uintptr
 	hr := CLRCreateInstance(&CLSID_CLRMetaHost, &IID_ICLRMetaHost, &pMetaHost)
 	err = checkOK(hr, "CLRCreateInstance")
